@@ -3,14 +3,14 @@ name: Build and Push Docker Image
 on:
   push:
     branches:
-      - master # 触发构建的分支
+      - master  # 触发构建的分支
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write # 允许推送镜像到 GHCR
+      packages: write  # 允许推送镜像到 GHCR
 
     steps:
       - name: Checkout code
@@ -21,11 +21,19 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }} # 使用 GitHub Token 登录
+          password: ${{ secrets.GITHUB_TOKEN }}  # 使用 GitHub Token 登录
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: ghcr.io/${{ github.repository }}:latest # 镜像标签
+        id: build-push
+        env:
+          REPO_OWNER: ${{ github.repository_owner }}  # 获取仓库所有者
+          REPO_NAME: ${{ github.repository }}  # 获取仓库名
+        run: |
+          # 将仓库所有者和仓库名转换为小写
+          REPO_OWNER_LOWER=$(echo "$REPO_OWNER" | tr '[:upper:]' '[:lower:]')
+          REPO_NAME_LOWER=$(echo "$REPO_NAME" | tr '[:upper:]' '[:lower:]')
+          
+          # 构建并推送 Docker 镜像
+          docker buildx build \
+            --tag ghcr.io/$REPO_OWNER_LOWER/$REPO_NAME_LOWER:latest \
+            --push .
